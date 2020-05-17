@@ -5,6 +5,7 @@ import re
 import datetime
 import logging
 import argparse
+from pathlib import Path
 from shutil import copyfile
 import sqlite3
 
@@ -84,7 +85,7 @@ def process_general_file(root, name):
     global db_cursor
     global db_conn
 
-    path = os.path.join(root, name)
+    path = os.path.join(os.path.sep, root, name)
     logging.debug("file: " + path)
 
     date_created = datetime.datetime.strptime(
@@ -92,7 +93,7 @@ def process_general_file(root, name):
     date_created = date_created.strftime("%Y-%m-%d")
 
     # determine destination path
-    directory = dest_path + str(date_created)
+    directory = os.path.join(os.path.sep, dest_path, str(date_created))
 
     # check if file has already been copied
     db_cursor.execute(
@@ -104,7 +105,7 @@ def process_general_file(root, name):
             os.makedirs(directory)
 
         # copy file
-        dest = directory + "/" + name
+        dest = os.path.join(os.path.sep, directory, name)
         logging.info("Copying file from %s to %s" % (path, dest))
         copyfile(path, dest)
 
@@ -217,12 +218,14 @@ def prepare_logging():
 
     :return: None
     """
+
     numeric_level = getattr(logging, log_level.upper(), None)
+    filename = os.path.join(os.path.sep, log_path, start_time.strftime(
+        "%Y-%m-%d-%H%M%S") + "_gopro_import.log")
     if not isinstance(numeric_level, int):
         raise ValueError('Invalid log level: %s' % log_level)
     logging.basicConfig(
-        filename=log_path +
-        start_time.strftime("%Y-%m-%d-%H%M%S") + '_gopro_import.log',
+        filename=filename,
         level=numeric_level,
         format='%(levelname)s:%(message)s'
     )
@@ -249,10 +252,12 @@ def parse_arguments():
         "--log", help="Setting of the log level. Possible values are 'DEBUG', 'INFO', 'WARNING', 'ERROR', and 'CRITICAL'")
     args = parser.parse_args()
     cam_path = args.cam_path
-    dest_path = args.dest_path
-    log_path = dest_path + "logs/"
-    db_path = log_path + "file_log.sqlite"
-    ensure_dir(log_path)
+    dest_path = os.path.join(os.path.sep, args.dest_path)
+    print(dest_path)
+    log_path = os.path.join(os.path.sep, dest_path, "logs")
+    Path(log_path).mkdir(parents=True, exist_ok=True)
+    db_path = os.path.join(os.path.sep, log_path, "file_log.sqlite")
+
     if args.log:
         log_level = args.log
 
